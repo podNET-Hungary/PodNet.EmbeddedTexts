@@ -1,0 +1,12 @@
+<Project>
+	<PropertyGroup>
+		<PodNetAutoEmbedAdditionalTexts>true</PodNetAutoEmbedAdditionalTexts>
+	</PropertyGroup>
+	
+	<ItemGroup>
+		<CompilerVisibleProperty Include="PodNetAutoEmbedAdditionalTexts" />
+		<CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="PodNet_EmbedText" />
+		<CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="PodNet_EmbedTextNamespace" />
+		<CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="PodNet_EmbedTextClassName" />
+	</ItemGroup>
+</Project>

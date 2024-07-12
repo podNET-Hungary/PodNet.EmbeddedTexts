@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<RestoreAdditionalProjectSources>$(ArtifactsPath)/package</RestoreAdditionalProjectSources>
+		<PodNetEnableAnalyzerConfigSnapshot>true</PodNetEnableAnalyzerConfigSnapshot>
+	</PropertyGroup>
+
+	<Target Name="PackEmbeddedTexts" BeforeTargets="Restore; Compile; Test">
+		<MSBuild Projects="..\..\src\EmbeddedTexts\PodNet.EmbeddedTexts.csproj" Targets="Pack" />
+	</Target>
+	
+	<ItemGroup>
+		
+		<PackageReference Include="MSTest" Version="3.4.3" />
+		
+		<PackageReference Include="PodNet.Analyzers.ConfigSnapshotGenerator" Version="1.0.3" />
+		<PackageReference Include="PodNet.Analyzers.Testing" Version="1.0.3" />
+		
+		<ProjectReference Include="..\..\src\EmbeddedTexts\PodNet.EmbeddedTexts.csproj" ReferenceOutputAssembly="false" />
+		<PackageReference Include="PodNet.EmbeddedTexts" Version="[0.0.0-debug]" />
+
+		<Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+
+		<AdditionalFiles Include="Files\**" />
+
+		<AdditionalFiles Update="Files\Ignored\**" PodNet_EmbedText="false" />
+		<AdditionalFiles Update="Files\CustomClass.txt" PodNet_EmbedTextClassName="TestClass" />
+		<AdditionalFiles Update="Files\CustomClassAndNamespace.txt" PodNet_EmbedTextNamespace="TestNamespace.TestSubNamespace" />
+		<AdditionalFiles Update="Files\CustomNamespace.txt" PodNet_EmbedTextNamespace="TestNamespace.TestSubNamespace" />
+		<AdditionalFiles Update="Files\CustomClassAndNamespace.txt" PodNet_EmbedTextNamespace="TestNamespace.TestSubNamespace" PodNet_EmbedTextClassName="TestClass" />
+		<AdditionalFiles Update="Files\Ignored\Unignored.txt" PodNet_EmbedText="true" />
+	
+	</ItemGroup>
+	
+</Project>

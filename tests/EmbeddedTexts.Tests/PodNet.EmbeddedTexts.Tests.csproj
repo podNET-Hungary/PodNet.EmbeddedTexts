@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+	</PropertyGroup>
+
+	<ItemGroup>
+
+		<PackageReference Include="MSTest" Version="3.4.3" />
+		<PackageReference Include="PodNet.Analyzers.Core" Version="1.0.9" />
+		<PackageReference Include="PodNet.Analyzers.Testing" Version="1.0.3" />
+		
+		<Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+
+		<ProjectReference Include="..\..\src\EmbeddedTexts\PodNet.EmbeddedTexts.csproj" />
+	</ItemGroup>
+
+</Project>

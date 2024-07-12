@@ -10,6 +10,8 @@ namespace PodNet.EmbeddedTexts.Tests;
 [TestClass]
 public class EmbeddedTextGeneratorTests
 {
+    private const string ProjectRoot = @"\home\Users\source\Project"; // Don't use Windows drive letter as root, it'll break Linux tests.
+
     [TestMethod]
     public void DoesntGenerateWhenDisabled()
     {
@@ -99,21 +101,21 @@ public class EmbeddedTextGeneratorTests
     private static Fakes.AnalyzerConfigOptions GetGlobalOptions(bool globalEnabled) => new()
     {
         ["build_property.rootnamespace"] = "Project",
-        ["build_property.projectdir"] = @"C:\Users\source\Project",
+        ["build_property.projectdir"] = ProjectRoot,
         [$"build_property.{EmbeddedTextsGenerator.EmbedAdditionalTextsConfigProperty}"] = globalEnabled.ToString()
     };
 
     private static Dictionary<Fakes.AdditionalText, Fakes.AnalyzerConfigOptions> GetOptionsForTexts(bool oneItemEnabled) => new()
     {
-        [new(@"C:\Users\source\Project\Default.txt", "Test File 1 Content")]
+        [new($@"{ProjectRoot}\Default.txt", "Test File 1 Content")]
             = [],
-        [new(@"C:\Users\source\Project\Parameterized Enabled.cs", "Test File 2 Content")]
+        [new($@"{ProjectRoot}\Parameterized Enabled.cs", "Test File 2 Content")]
             = new() { [$"build_metadata.additionalfiles.{EmbeddedTextsGenerator.EmbedTextMetadataProperty}"] = oneItemEnabled.ToString() },
-        [new(@"C:\Users\source\Project\CustomNamespace.n", "Test File 3 Content")]
+        [new($@"{ProjectRoot}\CustomNamespace.n", "Test File 3 Content")]
             = new() { [$"build_metadata.additionalfiles.{EmbeddedTextsGenerator.EmbedTextNamespaceMetadataProperty}"] = "TestNamespace" },
-        [new(@"C:\Users\source\Project\CustomClassName.n", "Test File 4 Content")]
+        [new($@"{ProjectRoot}\CustomClassName.n", "Test File 4 Content")]
             = new() { [$"build_metadata.additionalfiles.{EmbeddedTextsGenerator.EmbedTextClassNameMetadataProperty}"] = "TestClassName" },
-        [new(@"C:\Users\source\Project\Empty", "")] = [],
-        [new(@"C:\Users\source\Project\Subdirectory\2 Another &  Subdirectory/Empty.ini", "")] = [],
+        [new($@"{ProjectRoot}\Empty", "")] = [],
+        [new($@"{ProjectRoot}\Subdirectory\2 Another &  Subdirectory/Empty.ini", "")] = [],
     };
 }

@@ -10,7 +10,7 @@ namespace PodNet.EmbeddedTexts.Tests;
 [TestClass]
 public class EmbeddedTextGeneratorTests
 {
-    private const string ProjectRoot = @"\home\Users\source\Project"; // Don't use Windows drive letter as root, it'll break Linux tests.
+    private const string ProjectRoot = @"//home//Users//source//Project"; // Don't use Windows drive letter as root, it'll break Linux tests.
 
     [TestMethod]
     public void DoesntGenerateWhenDisabled()
@@ -107,15 +107,15 @@ public class EmbeddedTextGeneratorTests
 
     private static Dictionary<Fakes.AdditionalText, Fakes.AnalyzerConfigOptions> GetOptionsForTexts(bool oneItemEnabled) => new()
     {
-        [new($@"{ProjectRoot}\Default.txt", "Test File 1 Content")]
+        [new($@"{ProjectRoot}//Default.txt", "Test File 1 Content")]
             = [],
-        [new($@"{ProjectRoot}\Parameterized Enabled.cs", "Test File 2 Content")]
+        [new($@"{ProjectRoot}//Parameterized Enabled.cs", "Test File 2 Content")]
             = new() { [$"build_metadata.additionalfiles.{EmbeddedTextsGenerator.EmbedTextMetadataProperty}"] = oneItemEnabled.ToString() },
-        [new($@"{ProjectRoot}\CustomNamespace.n", "Test File 3 Content")]
+        [new($@"{ProjectRoot}//CustomNamespace.n", "Test File 3 Content")]
             = new() { [$"build_metadata.additionalfiles.{EmbeddedTextsGenerator.EmbedTextNamespaceMetadataProperty}"] = "TestNamespace" },
-        [new($@"{ProjectRoot}\CustomClassName.n", "Test File 4 Content")]
+        [new($@"{ProjectRoot}//CustomClassName.n", "Test File 4 Content")]
             = new() { [$"build_metadata.additionalfiles.{EmbeddedTextsGenerator.EmbedTextClassNameMetadataProperty}"] = "TestClassName" },
-        [new($@"{ProjectRoot}\Empty", "")] = [],
-        [new($@"{ProjectRoot}\Subdirectory\2 Another &  Subdirectory/Empty.ini", "")] = [],
+        [new($@"{ProjectRoot}//Empty", "")] = [],
+        [new($@"{ProjectRoot}//Subdirectory//2 Another &  Subdirectory/Empty.ini", "")] = [],
     };
 }

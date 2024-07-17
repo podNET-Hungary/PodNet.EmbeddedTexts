@@ -13,6 +13,7 @@ public sealed class EmbeddedTextsGenerator : IIncrementalGenerator
     public const string EmbedTextClassNameMetadataProperty = "PodNet_EmbedTextClassName";
     public const string EmbedTextIsConstMetadataProperty = "PodNet_EmbedTextIsConst";
     public const string EmbedTextIdentifierMetadataProperty = "PodNet_EmbedTextIdentifier";
+    public const string EmbedTextCommentContentLinesMetadataProperty = "PodNet_EmbedTextCommentContentLines";
 
     public record EmbeddedTextItemOptions(
         string? RootNamespace,
@@ -21,6 +22,7 @@ public sealed class EmbeddedTextsGenerator : IIncrementalGenerator
         string? ItemClassName,
         bool? IsConst,
         string? Identifier,
+        uint? CommentContentLines,
         bool Enabled,
         AdditionalText Text);
 
@@ -42,6 +44,7 @@ public sealed class EmbeddedTextsGenerator : IIncrementalGenerator
                     ItemClassName: itemOptions.GetAdditionalTextMetadata(EmbedTextClassNameMetadataProperty),
                     IsConst: string.Equals(itemOptions.GetAdditionalTextMetadata(EmbedTextIsConstMetadataProperty), "true", StringComparison.OrdinalIgnoreCase),
                     Identifier: itemOptions.GetAdditionalTextMetadata(EmbedTextIdentifierMetadataProperty),
+                    CommentContentLines: uint.TryParse(itemOptions.GetAdditionalTextMetadata(EmbedTextCommentContentLinesMetadataProperty), out var commentLines) ? commentLines : null,
                     Enabled: (globalEnabled || itemEnabled) && !itemDisabled,
                     Text: text);
             });
@@ -94,15 +97,17 @@ public sealed class EmbeddedTextsGenerator : IIncrementalGenerator
                 /// <code>
             """);
 
-            foreach (var line in lines.Take(10))
+            var commentLines = (int)item.CommentContentLines.GetValueOrDefault();
+
+            foreach (var line in commentLines > 0 ? lines.Take(commentLines) : lines)
             {
                 sourceBuilder.AppendLine($$"""
                 /// {{line.ToString().Replace("<", "&lt;").Replace(">", "&gt;")}}
             """);
             }
-            if (lines.Count > 10)
+            if (commentLines > 0 && lines.Count > commentLines)
             {
-                sourceBuilder.AppendLine($"/// [{lines.Count - 10} more lines ({lines.Count} total)] ");
+                sourceBuilder.AppendLine($"/// [{lines.Count - commentLines} more lines ({lines.Count} total)] ");
             }
 
             sourceBuilder.AppendLine($$"""

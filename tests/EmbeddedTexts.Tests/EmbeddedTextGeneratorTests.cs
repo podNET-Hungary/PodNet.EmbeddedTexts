@@ -15,7 +15,7 @@ public class EmbeddedTextGeneratorTests
     [TestMethod]
     public void DoesntGenerateWhenDisabled()
     {
-        var result = RunGeneration(false, false);
+        var result = RunGeneration(GetGlobalOptions(false), FakeText.Default);
         Assert.AreEqual(1, result.Results.Length);
         Assert.AreEqual(0, result.Results[0].GeneratedSources.Length);
     }
@@ -23,41 +23,33 @@ public class EmbeddedTextGeneratorTests
     [TestMethod]
     public void GeneratesForOptInOnly()
     {
-        var result = RunGeneration(false, true);
+        var result = RunGeneration(GetGlobalOptions(false), FakeText.Default, FakeText.Enabled, FakeText.Disabled);
 
-        Assert.IsTrue(result.Results.Single().GeneratedSources.Single().SyntaxTree.ToString().Contains("Test File 2 Content"));
+        Assert.IsTrue(result.Results.Single().GeneratedSources.Single().SyntaxTree.ToString().Contains("Enabled Content"));
     }
 
     [TestMethod]
     public void DoesntGenerateForOptOut()
     {
-        var result = RunGeneration(true, false);
+        var result = RunGeneration(GetGlobalOptions(true), FakeText.Default, FakeText.Enabled, FakeText.Disabled);
         Assert.AreEqual(1, result.Results.Length);
-        Assert.AreEqual(7, result.Results[0].GeneratedSources.Length);
-    }
-
-    [TestMethod]
-    public void GenerateAllWhenGloballyEnabledAndItemIsOptIn()
-    {
-        var result = RunGeneration(true, true);
-        Assert.AreEqual(1, result.Results.Length);
-        Assert.AreEqual(8, result.Results[0].GeneratedSources.Length);
+        Assert.AreEqual(2, result.Results[0].GeneratedSources.Length);
     }
 
     [TestMethod]
     public void GeneratesStructurallyEquivalentResult()
     {
         // Generates a single source as per GeneratesForOptInOnly
-        var result = RunGeneration(false, true);
+        var result = RunGeneration(FakeText.Default);
         var source = result.Results.Single().GeneratedSources.Single();
 
         var expected = CSharpSyntaxTree.ParseText(""""
             namespace Project;
             
-            public static partial class Parameterized_Enabled_cs
+            public static partial class Default_txt
             {
                 public static string Content => """
-            Test File 2 Content
+            Default Content
             """;
             }
             """").GetRoot();
@@ -66,74 +58,120 @@ public class EmbeddedTextGeneratorTests
     }
 
     [DataTestMethod]
-    [DataRow("Default_txt", "Project")]
-    [DataRow("Parameterized_Enabled_cs", "Project")]
-    [DataRow("CustomNamespace_n", "TestNamespace")]
-    [DataRow("TestClassName", "Project")]
-    [DataRow("Empty", "Project")]
-    [DataRow("Empty_ini", "Project.Subdirectory._2_Another____Subdirectory")]
-    public void GeneratesCorrectClassNamesAndNamespaces(string expectedClassName, string expectedNamespace)
+    [DataRow($@"{ProjectRoot}//Default.txt", null, null, "Project", "Default_txt")]
+    [DataRow($@"{ProjectRoot}//Subdirectory//2 Another &  Subdirectory/File | Weird.ini", null, null, "Project.Subdirectory._2_Another____Subdirectory", "File___Weird_ini")]
+    [DataRow($@"{ProjectRoot}//CustomNamespace.txt", "TestCustomNamespace", null, "TestCustomNamespace", "CustomNamespace_txt")]
+    [DataRow($@"{ProjectRoot}//CustomClassName.txt", null, "TestCustomClassName", "Project", "TestCustomClassName")]
+    [DataRow($@"{ProjectRoot}//CustomNamespaceAndClass.txt", "TestCustomNamespace", "TestCustomClassName", "TestCustomNamespace", "TestCustomClassName")]
+    public void GeneratesCorrectNamespacesAndClassNames(string path, string? namespaceProperty, string? classProperty, string expectedNamespace, string expectedClassName)
     {
-        var result = RunGeneration(true, true);
-        var source = result.Results.Single().GeneratedSources.SingleOrDefault(s => s.HintName.EndsWith($"{expectedClassName}.g.cs"));
-        Assert.IsNotNull(source);
-        var @namespace = source.SyntaxTree.GetRoot().DescendantNodes().OfType<FileScopedNamespaceDeclarationSyntax>().FirstOrDefault()?.Name.ToString();
-        var className = source.SyntaxTree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>().FirstOrDefault()?.Identifier.ToString();
+        var options = new Dictionary<string, string?>();
+        if (namespaceProperty != null)
+            options[$"build_metadata.additionalfiles.{EmbeddedTextsGenerator.EmbedTextNamespaceMetadataProperty}"] = namespaceProperty;
+        if (classProperty != null)
+            options[$"build_metadata.additionalfiles.{EmbeddedTextsGenerator.EmbedTextClassNameMetadataProperty}"] = classProperty;
+        var result = RunGeneration(new FakeText(path, $"{path} Contents", options));
+        var sourceNodes = result.Results.Single().GeneratedSources.Single().SyntaxTree.GetRoot().DescendantNodes();
+        var @namespace = sourceNodes.OfType<FileScopedNamespaceDeclarationSyntax>().FirstOrDefault()?.Name.ToString();
+        var className = sourceNodes.OfType<ClassDeclarationSyntax>().FirstOrDefault()?.Identifier.ToString();
         Assert.AreEqual(expectedNamespace, @namespace);
         Assert.AreEqual(expectedClassName, className);
     }
 
     [DataTestMethod]
-    [DataRow("Default_txt", "public static string Content => ")]
-    [DataRow("Const", "public const string Content = ")]
-    [DataRow("CustomIdentifier", "public static string CustomIdentifier => ")]
-    public void GeneratesConstantsAndCustomIdentifiersOnDemand(string expectedClassName, string expectedDeclaration)
+    [DataRow(null, null, "public static string Content => ")]
+    [DataRow(false, null, "public static string Content => ")]
+    [DataRow(true, null, "public const string Content = ")]
+    [DataRow(null, "CustomIdentifier", "public static string CustomIdentifier => ")]
+    [DataRow(true, "CustomIdentifier", "public const string CustomIdentifier = ")]
+    public void GeneratesConstantsAndCustomIdentifiersOnDemand(bool? constantConfigValue, string? customIdentifier, string expectedDeclaration)
     {
-        var result = RunGeneration(true, true);
-
-        var source = result.Results.Single().GeneratedSources.SingleOrDefault(s => s.HintName.EndsWith($"{expectedClassName}.g.cs"));
-        Assert.IsNotNull(source);
+        var options = new Dictionary<string, string?>();
+        if (constantConfigValue is not null)
+            options[$"build_metadata.additionalfiles.{EmbeddedTextsGenerator.EmbedTextIsConstMetadataProperty}"] = constantConfigValue.ToString();
+        if (customIdentifier is not null)
+            options[$"build_metadata.additionalfiles.{EmbeddedTextsGenerator.EmbedTextIdentifierMetadataProperty}"] = customIdentifier;
+        var result = RunGeneration(new FakeText($@"{ProjectRoot}//File", "Contents", options));
+        var source = result.Results.Single().GeneratedSources.Single();
         var actualDeclaration = source.SyntaxTree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>().SingleOrDefault()?.DescendantNodes().OfType<MemberDeclarationSyntax>().SingleOrDefault()?.ToString();
-        Assert.AreEqual(expectedDeclaration, actualDeclaration?[0..expectedDeclaration.Length]);
+        Assert.IsNotNull(actualDeclaration);
+        Assert.AreEqual(expectedDeclaration, actualDeclaration[0..expectedDeclaration.Length]);
     }
 
-    public static GeneratorDriverRunResult RunGeneration(bool globalEnabled, bool oneItemEnabled)
+    [DataTestMethod]
+    [DataRow(10, 4, 5)]
+    [DataRow(10, 15, 10)]
+    [DataRow(10, -15, 10)]
+    [DataRow(1000, 50, 51)]
+    [DataRow(1000, null, 1000)]
+    public void GeneratesCustomCommentLines(int fileContentLines, int? limitLineNumber, int expectedLines)
     {
-        var additionalTextsLookup = GetOptionsForTexts(oneItemEnabled)
-            .ToDictionary(f => (AdditionalText)f.Key, f => f.Value);
-        var globalOptions = GetGlobalOptions(globalEnabled);
-        var optionsProvider = new Fakes.AnalyzerConfigOptionsProvider(globalOptions, [], additionalTextsLookup);
-        var compilation = PodCSharpCompilation.Create([]);
-        var generator = new EmbeddedTextsGenerator();
-        return compilation.RunGenerators(
-            [generator],
-            driver => (CSharpGeneratorDriver)driver
-                .AddAdditionalTexts(additionalTextsLookup.Select(a => a.Key).ToImmutableArray())
-                .WithUpdatedAnalyzerConfigOptions(optionsProvider));
+        if (limitLineNumber is < 0)
+            limitLineNumber = null;
+        var options = new Dictionary<string, string?>();
+        if (limitLineNumber is not null)
+            options[$"build_metadata.additionalfiles.{EmbeddedTextsGenerator.EmbedTextCommentContentLinesMetadataProperty}"] = limitLineNumber.ToString();
+        var lines = Enumerable.Range(1, fileContentLines).Select(n => $"Line [{n}]").ToList();
+        var result = RunGeneration(new FakeText($@"{ProjectRoot}//File", string.Join("\n", lines), options));
+
+        var source = result.Results.Single().GeneratedSources.Single();
+        var sourceLines = source.SyntaxTree.ToString().Split(["\r\n", "\r", "\n"], StringSplitOptions.TrimEntries);
+        var commentCodeLines = sourceLines.SkipWhile(s => s != "/// <code>").Skip(1).TakeWhile(s => s != "/// </code>").ToList();
+
+        if (fileContentLines > 0)
+            Assert.IsTrue(commentCodeLines[0] == "/// Line [1]");
+        Assert.AreEqual(expectedLines, commentCodeLines.Count);
+        if (limitLineNumber is not null && fileContentLines > limitLineNumber)
+        {
+            Assert.IsTrue(commentCodeLines[^2] == $"/// Line [{limitLineNumber}]");
+            Assert.IsTrue(commentCodeLines[^1] == $"/// [{fileContentLines - limitLineNumber} more lines ({fileContentLines} total)]");
+        }
     }
 
-    private static Fakes.AnalyzerConfigOptions GetGlobalOptions(bool globalEnabled) => new()
+    private static IIncrementalGenerator[] Generators { get; } = [new EmbeddedTextsGenerator()];
+    private static CSharpCompilation Compilation { get; } = PodCSharpCompilation.Create([]);
+
+    private static GeneratorDriverRunResult RunGeneration(Fakes.AnalyzerConfigOptions globalOptions, params FakeText[] additionalTexts)
+    {
+        var additionalTextsDictionary = additionalTexts.Select(e => (Text: (AdditionalText)new Fakes.AdditionalText(e.Path, e.Contents), e.Options)).ToDictionary(e => e.Text, e => new Fakes.AnalyzerConfigOptions(e.Options ?? []));
+        return Compilation.RunGenerators(
+            Generators,
+            driver => (CSharpGeneratorDriver)driver
+                .AddAdditionalTexts([.. additionalTextsDictionary.Keys])
+                .WithUpdatedAnalyzerConfigOptions(new Fakes.AnalyzerConfigOptionsProvider(globalOptions, [], additionalTextsDictionary)));
+    }
+
+    private static GeneratorDriverRunResult RunGeneration(params FakeText[] additionalTexts)
+        => RunGeneration(NoOptions, additionalTexts);
+
+    private static Fakes.AnalyzerConfigOptions NoOptions { get; } = new()
     {
         ["build_property.rootnamespace"] = "Project",
         ["build_property.projectdir"] = ProjectRoot,
-        [$"build_property.{EmbeddedTextsGenerator.EmbedAdditionalTextsConfigProperty}"] = globalEnabled.ToString()
     };
 
-    private static Dictionary<Fakes.AdditionalText, Fakes.AnalyzerConfigOptions> GetOptionsForTexts(bool oneItemEnabled) => new()
+    private static Fakes.AnalyzerConfigOptions GetGlobalOptions(Dictionary<string, string?> additionalValues)
     {
-        [new($@"{ProjectRoot}//Default.txt", "Test File 1 Content")]
-            = [],
-        [new($@"{ProjectRoot}//Parameterized Enabled.cs", "Test File 2 Content")]
-            = new() { [$"build_metadata.additionalfiles.{EmbeddedTextsGenerator.EmbedTextMetadataProperty}"] = oneItemEnabled.ToString() },
-        [new($@"{ProjectRoot}//CustomNamespace.n", "Test File 3 Content")]
-            = new() { [$"build_metadata.additionalfiles.{EmbeddedTextsGenerator.EmbedTextNamespaceMetadataProperty}"] = "TestNamespace" },
-        [new($@"{ProjectRoot}//CustomClassName.n", "Test File 4 Content")]
-            = new() { [$"build_metadata.additionalfiles.{EmbeddedTextsGenerator.EmbedTextClassNameMetadataProperty}"] = "TestClassName" },
-        [new($@"{ProjectRoot}//Empty", "")] = [],
-        [new($@"{ProjectRoot}//Subdirectory//2 Another &  Subdirectory/Empty.ini", "")] = [],
-        [new($@"{ProjectRoot}//Const", "")]
-            = new () { [$"build_metadata.additionalfiles.{EmbeddedTextsGenerator.EmbedTextIsConstMetadataProperty}"] = "true" },
-        [new($@"{ProjectRoot}//CustomIdentifier", "")]
-            = new() { [$"build_metadata.additionalfiles.{EmbeddedTextsGenerator.EmbedTextIdentifierMetadataProperty}"] = "CustomIdentifier" },
-    };
+        var options = new Fakes.AnalyzerConfigOptions(NoOptions.Values);
+        foreach (var value in additionalValues)
+            options.Add(value);
+        return options;
+    }
+
+    private static Fakes.AnalyzerConfigOptions GetGlobalOptions(bool enabled)
+        => GetGlobalOptions(additionalValues: new()
+        {
+            [$"build_property.{EmbeddedTextsGenerator.EmbedAdditionalTextsConfigProperty}"] = enabled.ToString()
+        });
+
+    private record class FakeText(string Path, string Contents, Dictionary<string, string?>? Options = null)
+    {
+        public FakeText(string Path, string Contents, params (string Key, string? Value)[] Options) : this(Path, Contents, Options.ToDictionary(e => e.Key, e => e.Value)) { }
+
+        public static FakeText Default { get; } = new($@"{ProjectRoot}//Default.txt", "Default Content");
+        public static FakeText Enabled { get; } = new($@"{ProjectRoot}//Enabled.txt", "Enabled Content", ($"build_metadata.additionalfiles.{EmbeddedTextsGenerator.EmbedTextMetadataProperty}", "true"));
+        public static FakeText Disabled { get; } = new($@"{ProjectRoot}//Disabled.txt", "Disabled Content", ($"build_metadata.additionalfiles.{EmbeddedTextsGenerator.EmbedTextMetadataProperty}", "false"));
+
+        public static FakeText[] GetDefaultItems() => [Default, Enabled, Disabled];
+    }
 }

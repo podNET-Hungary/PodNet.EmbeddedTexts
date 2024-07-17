@@ -6,10 +6,9 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-
-		<PackageReference Include="MSTest" Version="3.4.3" />
-
-		<PackageReference Include="PodNet.Analyzers.Testing" Version="1.0.3" />
+		
+		<PackageReference Include="PodNet.Analyzers.Testing" Version="1.0.7" />
+		<PackageReference Include="MSTest" Version="3.5.0" />
 
 		<!-- Take note that the NuGet package has to be packed before the integration tests are executed. -->
 		<!-- Take care to empty the package from the local and global caches as needed. -->
@@ -20,12 +19,17 @@
 		<AdditionalFiles Include="Files\**" />
 
 		<AdditionalFiles Update="Files\Ignored\**" PodNet_EmbedText="false" />
+		<AdditionalFiles Update="Files\Ignored\Unignored.txt" PodNet_EmbedText="true" />
+		
 		<AdditionalFiles Update="Files\CustomClass.txt" PodNet_EmbedTextClassName="TestClass" />
 		<AdditionalFiles Update="Files\CustomClassAndNamespace.txt" PodNet_EmbedTextNamespace="TestNamespace.TestSubNamespace" />
 		<AdditionalFiles Update="Files\CustomNamespace.txt" PodNet_EmbedTextNamespace="TestNamespace.TestSubNamespace" />
 		<AdditionalFiles Update="Files\CustomClassAndNamespace.txt" PodNet_EmbedTextNamespace="TestNamespace.TestSubNamespace" PodNet_EmbedTextClassName="TestClass" />
-		<AdditionalFiles Update="Files\Ignored\Unignored.txt" PodNet_EmbedText="true" />
 
+		<AdditionalFiles Update="Files\CustomPropertyName.txt" PodNet_EmbedTextIdentifier="TestProperty" />
+		<AdditionalFiles Update="Files\Const.txt" PodNet_EmbedTextIsConst="true" />
+
+		<AdditionalFiles Update="Files\10Lines.txt" PodNet_EmbedTextCommentContentLines="5" />
 	</ItemGroup>
 	
 </Project>

@@ -80,12 +80,14 @@ You can set the `PodNet_EmbedTextNamespace`, `PodNet_EmbedTextClassName`, `PodNe
          - Namespace: "MyProject.Files", generated from the directory structure and the project root namespace,
          - ClassName: "My_File_txt", generated from sanitizing the file name,
          - IsConst: unless set to true, the generated member is a property that returns the constant value by expression body,
-         - Identifier: defaults to "Content". -->
+         - Identifier: defaults to "Content",
+         - CommentContentLines: if set to a positive number, will limit the number of lines shown in the comment (IntelliSense) for the file contents. -->
     <AdditionalFiles Include="Files/My File.txt" 
                      PodNet_EmbedTextNamespace="OtherNamespace" 
                      PodNet_EmbedTextClassName="MyFileTXT"
                      PodNet_EmbedTextIsConst="true"
-                     PodNet_EmbedTextIdentifier="Text" />
+                     PodNet_EmbedTextIdentifier="Text"
+                     PodNet_EmbedTextCommentContentLines="20" />
   </ItemGroup>
 </Project>
 ```

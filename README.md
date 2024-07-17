@@ -70,14 +70,22 @@ Whether you have the generator automatically generating or not, you can explicit
 
 ### Configuring the generated class name and namespace
 
-You can set the `PodNet_EmbedTextNamespace` and `PodNet_EmbedTextClassName` properties on the items to override the default namespace and class name.
+You can set the `PodNet_EmbedTextNamespace`, `PodNet_EmbedTextClassName`, `PodNet_EmbeddedTextIsConst` and `PodNet_EmbeddedTextIdentifier` properties (attributes) on the items to override the default namespace, class and identifier name, as well as to generate a const instead of a property.
 
 ```csproj
 <Project>
   <!-- Additional properties, items and targets omitted -->
   <ItemGroup>
-    <!-- The default namespace for the file would be "MyProject.Files" and the class would be "My_File_txt". -->
-    <AdditionalFiles Include="Files/My File.txt" PodNet_EmbedTextNamespace="OtherNamespace" PodNet_EmbedTextClassName="MyFileTXT" />
+    <!-- The defaults would be:
+         - Namespace: "MyProject.Files", generated from the directory structure and the project root namespace,
+         - ClassName: "My_File_txt", generated from sanitizing the file name,
+         - IsConst: unless set to true, the generated member is a property that returns the constant value by expression body,
+         - Identifier: defaults to "Content". -->
+    <AdditionalFiles Include="Files/My File.txt" 
+                     PodNet_EmbedTextNamespace="OtherNamespace" 
+                     PodNet_EmbedTextClassName="MyFileTXT"
+                     PodNet_EmbedTextIsConst="true"
+                     PodNet_EmbedTextIdentifier="Text" />
   </ItemGroup>
 </Project>
 ```

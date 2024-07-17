@@ -24,8 +24,8 @@ public class EmbeddedTextGeneratorTests
     public void GeneratesForOptInOnly()
     {
         var result = RunGeneration(false, true);
-        // This is a complex assertion that makes sure there is a single result that contains a single property declaration with the expected content in its initializer. Doesn't check for other structural correctness.
-        Assert.AreEqual("Test File 2 Content", ((LiteralExpressionSyntax)result.Results.Single().GeneratedSources.Single().SyntaxTree.GetRoot().DescendantNodes().OfType<PropertyDeclarationSyntax>().Single().Initializer!.Value).ToString().Trim('"').Trim());
+
+        Assert.IsTrue(result.Results.Single().GeneratedSources.Single().SyntaxTree.ToString().Contains("Test File 2 Content"));
     }
 
     [TestMethod]
@@ -33,7 +33,7 @@ public class EmbeddedTextGeneratorTests
     {
         var result = RunGeneration(true, false);
         Assert.AreEqual(1, result.Results.Length);
-        Assert.AreEqual(5, result.Results[0].GeneratedSources.Length);
+        Assert.AreEqual(7, result.Results[0].GeneratedSources.Length);
     }
 
     [TestMethod]
@@ -41,7 +41,7 @@ public class EmbeddedTextGeneratorTests
     {
         var result = RunGeneration(true, true);
         Assert.AreEqual(1, result.Results.Length);
-        Assert.AreEqual(6, result.Results[0].GeneratedSources.Length);
+        Assert.AreEqual(8, result.Results[0].GeneratedSources.Length);
     }
 
     [TestMethod]
@@ -56,7 +56,7 @@ public class EmbeddedTextGeneratorTests
             
             public static partial class Parameterized_Enabled_cs
             {
-                public static string Content { get; } = """
+                public static string Content => """
             Test File 2 Content
             """;
             }
@@ -81,6 +81,20 @@ public class EmbeddedTextGeneratorTests
         var className = source.SyntaxTree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>().FirstOrDefault()?.Identifier.ToString();
         Assert.AreEqual(expectedNamespace, @namespace);
         Assert.AreEqual(expectedClassName, className);
+    }
+
+    [DataTestMethod]
+    [DataRow("Default_txt", "public static string Content => ")]
+    [DataRow("Const", "public const string Content = ")]
+    [DataRow("CustomIdentifier", "public static string CustomIdentifier => ")]
+    public void GeneratesConstantsAndCustomIdentifiersOnDemand(string expectedClassName, string expectedDeclaration)
+    {
+        var result = RunGeneration(true, true);
+
+        var source = result.Results.Single().GeneratedSources.SingleOrDefault(s => s.HintName.EndsWith($"{expectedClassName}.g.cs"));
+        Assert.IsNotNull(source);
+        var actualDeclaration = source.SyntaxTree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>().SingleOrDefault()?.DescendantNodes().OfType<MemberDeclarationSyntax>().SingleOrDefault()?.ToString();
+        Assert.AreEqual(expectedDeclaration, actualDeclaration?[0..expectedDeclaration.Length]);
     }
 
     public static GeneratorDriverRunResult RunGeneration(bool globalEnabled, bool oneItemEnabled)
@@ -117,5 +131,9 @@ public class EmbeddedTextGeneratorTests
             = new() { [$"build_metadata.additionalfiles.{EmbeddedTextsGenerator.EmbedTextClassNameMetadataProperty}"] = "TestClassName" },
         [new($@"{ProjectRoot}//Empty", "")] = [],
         [new($@"{ProjectRoot}//Subdirectory//2 Another &  Subdirectory/Empty.ini", "")] = [],
+        [new($@"{ProjectRoot}//Const", "")]
+            = new () { [$"build_metadata.additionalfiles.{EmbeddedTextsGenerator.EmbedTextIsConstMetadataProperty}"] = "true" },
+        [new($@"{ProjectRoot}//CustomIdentifier", "")]
+            = new() { [$"build_metadata.additionalfiles.{EmbeddedTextsGenerator.EmbedTextIdentifierMetadataProperty}"] = "CustomIdentifier" },
     };
 }

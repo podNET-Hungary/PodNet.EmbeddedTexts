@@ -11,12 +11,16 @@ public sealed class EmbeddedTextsGenerator : IIncrementalGenerator
     public const string EmbedTextMetadataProperty = "PodNet_EmbedText";
     public const string EmbedTextNamespaceMetadataProperty = "PodNet_EmbedTextNamespace";
     public const string EmbedTextClassNameMetadataProperty = "PodNet_EmbedTextClassName";
+    public const string EmbedTextIsConstMetadataProperty = "PodNet_EmbedTextIsConst";
+    public const string EmbedTextIdentifierMetadataProperty = "PodNet_EmbedTextIdentifier";
 
     public record EmbeddedTextItemOptions(
         string? RootNamespace,
         string? ProjectDirectory,
         string? ItemNamespace,
         string? ItemClassName,
+        bool? IsConst,
+        string? Identifier,
         bool Enabled,
         AdditionalText Text);
 
@@ -36,6 +40,8 @@ public sealed class EmbeddedTextsGenerator : IIncrementalGenerator
                     ProjectDirectory: options.GlobalOptions.GetProjectDirectory(),
                     ItemNamespace: itemOptions.GetAdditionalTextMetadata(EmbedTextNamespaceMetadataProperty),
                     ItemClassName: itemOptions.GetAdditionalTextMetadata(EmbedTextClassNameMetadataProperty),
+                    IsConst: string.Equals(itemOptions.GetAdditionalTextMetadata(EmbedTextIsConstMetadataProperty), "true", StringComparison.OrdinalIgnoreCase),
+                    Identifier: itemOptions.GetAdditionalTextMetadata(EmbedTextIdentifierMetadataProperty),
                     Enabled: (globalEnabled || itemEnabled) && !itemDisabled,
                     Text: text);
             });
@@ -52,16 +58,23 @@ public sealed class EmbeddedTextsGenerator : IIncrementalGenerator
             if (item.Text.Path is not { Length: > 0 })
                 throw new InvalidOperationException("Path not found for file.");
 
-            var className = TextProcessing.GetClassName(item.ItemClassName is { Length: > 0 } 
-                ? item.ItemClassName
-                : Path.GetFileName(item.Text.Path));
-
             var relativeFolderPath = PathProcessing.GetRelativePath(item.ProjectDirectory, Path.GetDirectoryName(item.Text.Path));
             var relativeFilePath = PathProcessing.GetRelativePath(item.ProjectDirectory, item.Text.Path);
 
             var @namespace = TextProcessing.GetNamespace(item.ItemNamespace is { Length: > 0 }
                 ? item.ItemNamespace
                 : $"{item.RootNamespace}.{relativeFolderPath}");
+
+            var className = TextProcessing.GetClassName(item.ItemClassName is { Length: > 0 } 
+                ? item.ItemClassName
+                : Path.GetFileName(item.Text.Path));
+
+            var isConst = item.IsConst is true;
+            var modifier = isConst ? "const" : "static";
+
+            var identifierName = TextProcessing.GetClassName(item.Identifier is { Length: > 0 }
+                ? item.Identifier
+                : "Content");
 
             var separator = new string('"', 3);
             while (lines.Any(l => l.Text?.ToString().Contains(separator) == true))
@@ -81,17 +94,21 @@ public sealed class EmbeddedTextsGenerator : IIncrementalGenerator
                 /// <code>
             """);
 
-            foreach (var line in lines)
+            foreach (var line in lines.Take(10))
             {
                 sourceBuilder.AppendLine($$"""
                 /// {{line.ToString().Replace("<", "&lt;").Replace(">", "&gt;")}}
             """);
             }
+            if (lines.Count > 10)
+            {
+                sourceBuilder.AppendLine($"/// [{lines.Count - 10} more lines ({lines.Count} total)] ");
+            }
 
             sourceBuilder.AppendLine($$"""
                 /// </code>
                 /// </summary>
-                public static string Content { get; } = {{separator}}
+                public {{modifier}} string {{identifierName}} {{(isConst ? "=" : "=>")}} {{separator}}
             {{text}}
             {{separator}};
             }

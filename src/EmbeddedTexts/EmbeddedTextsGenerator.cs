@@ -14,15 +14,19 @@ public sealed class EmbeddedTextsGenerator : IIncrementalGenerator
     public const string EmbedTextIsConstMetadataProperty = "PodNet_EmbedTextIsConst";
     public const string EmbedTextIdentifierMetadataProperty = "PodNet_EmbedTextIdentifier";
     public const string EmbedTextCommentContentLinesMetadataProperty = "PodNet_EmbedTextCommentContentLines";
-
+    public const string EmbedTextIsStaticClassMetadataProperty = "PodNet_EmbedTextIsStaticClass";
+    public const string EmbedTextDirectoryAsClassMetadataProperty = "PodNet_EmbedTextDirectoryAsClass";
+    
     public record EmbeddedTextItemOptions(
         string? RootNamespace,
         string? ProjectDirectory,
         string? ItemNamespace,
         string? ItemClassName,
-        bool? IsConst,
+        bool IsConst,
         string? Identifier,
         uint? CommentContentLines,
+        bool IsStaticClass,
+        bool DirectoryAsClass,
         bool Enabled,
         AdditionalText Text);
 
@@ -45,6 +49,8 @@ public sealed class EmbeddedTextsGenerator : IIncrementalGenerator
                     IsConst: string.Equals(itemOptions.GetAdditionalTextMetadata(EmbedTextIsConstMetadataProperty), "true", StringComparison.OrdinalIgnoreCase),
                     Identifier: itemOptions.GetAdditionalTextMetadata(EmbedTextIdentifierMetadataProperty),
                     CommentContentLines: uint.TryParse(itemOptions.GetAdditionalTextMetadata(EmbedTextCommentContentLinesMetadataProperty), out var commentLines) ? commentLines : null,
+                    IsStaticClass: string.Equals(itemOptions.GetAdditionalTextMetadata(EmbedTextIsStaticClassMetadataProperty), "true", StringComparison.OrdinalIgnoreCase),
+                    DirectoryAsClass: string.Equals(itemOptions.GetAdditionalTextMetadata(EmbedTextDirectoryAsClassMetadataProperty), "true", StringComparison.OrdinalIgnoreCase),
                     Enabled: (globalEnabled || itemEnabled) && !itemDisabled,
                     Text: text);
             });
@@ -61,8 +67,17 @@ public sealed class EmbeddedTextsGenerator : IIncrementalGenerator
             if (item.Text.Path is not { Length: > 0 })
                 throw new InvalidOperationException("Path not found for file.");
 
-            var relativeFolderPath = PathProcessing.GetRelativePath(item.ProjectDirectory, Path.GetDirectoryName(item.Text.Path));
+            string fullDirectory = Path.GetDirectoryName(item.Text.Path);
+            var relativeFolderPath = PathProcessing.GetRelativePath(item.ProjectDirectory, fullDirectory);
             var relativeFilePath = PathProcessing.GetRelativePath(item.ProjectDirectory, item.Text.Path);
+
+            var directoryParts = fullDirectory.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            if (directoryParts.Length == 0)
+                throw new InvalidOperationException("Couldn't determine directory.");
+            var directory = directoryParts[^1];
+
+            if (item.DirectoryAsClass)
+                relativeFolderPath = relativeFolderPath[0..^directory.Length];
 
             var @namespace = TextProcessing.GetNamespace(item.ItemNamespace is { Length: > 0 }
                 ? item.ItemNamespace
@@ -70,14 +85,19 @@ public sealed class EmbeddedTextsGenerator : IIncrementalGenerator
 
             var className = TextProcessing.GetClassName(item.ItemClassName is { Length: > 0 } 
                 ? item.ItemClassName
-                : Path.GetFileName(item.Text.Path));
+                : item.DirectoryAsClass
+                    ? directory
+                    : Path.GetFileName(item.Text.Path));
 
             var isConst = item.IsConst is true;
             var modifier = isConst ? "const" : "static";
+            var classModifiers = item.IsStaticClass ? "static partial" : "partial";
 
             var identifierName = TextProcessing.GetClassName(item.Identifier is { Length: > 0 }
                 ? item.Identifier
-                : "Content");
+                : item.DirectoryAsClass
+                    ? Path.GetFileName(item.Text.Path)
+                    : "Content");
 
             var separator = new string('"', 3);
             while (lines.Any(l => l.Text?.ToString().Contains(separator) == true))
@@ -90,7 +110,7 @@ public sealed class EmbeddedTextsGenerator : IIncrementalGenerator
 
             namespace {{@namespace}};
 
-            public static partial class {{className}}
+            public {{classModifiers}} class {{className}}
             {
                 /// <summary>
                 /// Contents of the file at '{{relativeFilePath}}':
@@ -119,7 +139,7 @@ public sealed class EmbeddedTextsGenerator : IIncrementalGenerator
             }
             """);
 
-            context.AddSource($"{@namespace}/{className}.g.cs", sourceBuilder.ToString());
+            context.AddSource($"{@namespace}/{className}/{identifierName}.g.cs", sourceBuilder.ToString());
         });
     }
 }

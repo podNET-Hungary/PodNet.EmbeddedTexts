@@ -46,7 +46,7 @@ public class EmbeddedTextGeneratorTests
         var expected = CSharpSyntaxTree.ParseText(""""
             namespace Project;
             
-            public static partial class Default_txt
+            public partial class Default_txt
             {
                 public static string Content => """
             Default Content
@@ -126,6 +126,52 @@ public class EmbeddedTextGeneratorTests
             Assert.IsTrue(commentCodeLines[^2] == $"/// Line [{limitLineNumber}]");
             Assert.IsTrue(commentCodeLines[^1] == $"/// [{fileContentLines - limitLineNumber} more lines ({fileContentLines} total)]");
         }
+    }
+
+    [TestMethod]
+    public void ClassIsNotStaticByDefault()
+    {
+        var result = RunGeneration(new FakeText($@"{ProjectRoot}//File", ""));
+        var source = result.Results.Single().GeneratedSources.Single();
+
+        var @class = source.SyntaxTree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>().Single();
+
+        Assert.IsTrue(@class.Modifiers.All(m => m.Kind() is not SyntaxKind.StaticKeyword));
+    }
+
+    [TestMethod]
+    public void ClassCanBeMadeStatic()
+    {
+        var result = RunGeneration(new FakeText($@"{ProjectRoot}//File", "", ($"build_metadata.additionalfiles.{EmbeddedTextsGenerator.EmbedTextIsStaticClassMetadataProperty}", "true")));
+
+        var source = result.Results.Single().GeneratedSources.Single();
+        var @class = source.SyntaxTree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>().Single();
+
+        Assert.IsTrue(@class.Modifiers.Any(m => m.Kind() is SyntaxKind.StaticKeyword));
+    }
+
+    [TestMethod]
+    public void DirectoryAsClassGeneratesCorrectOutput()
+    {
+        var directoryAsClass = ($"build_metadata.additionalfiles.{EmbeddedTextsGenerator.EmbedTextDirectoryAsClassMetadataProperty}", "true");
+        var result = RunGeneration(
+            new FakeText($"{ProjectRoot}/Namespace1/Namespace2/ClassName/Property1", "File1 Contents", directoryAsClass), 
+            new FakeText($"{ProjectRoot}/Namespace1/Namespace2/ClassName/Property2", "File2 Contents", directoryAsClass));
+
+        if (result.Results.Single().GeneratedSources is not [var one, var two])
+            throw new AssertFailedException("Expected two sources generated.");
+
+        var nsOne = one.SyntaxTree.GetRoot().DescendantNodes().OfType<FileScopedNamespaceDeclarationSyntax>().Single();
+        var nsTwo = two.SyntaxTree.GetRoot().DescendantNodes().OfType<FileScopedNamespaceDeclarationSyntax>().Single();
+        Assert.AreEqual(nsOne.Name.ToString(), nsTwo.Name.ToString());
+        Assert.AreEqual("Project.Namespace1.Namespace2", nsOne.Name.ToString());
+
+        var classOne = one.SyntaxTree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>().Single();
+        var classTwo = two.SyntaxTree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>().Single();
+        Assert.AreEqual(classOne.Identifier.ToString(), classTwo.Identifier.ToString());
+        Assert.AreEqual("ClassName", classOne.Identifier.ToString());
+
+        Assert.AreEqual("Property1", classOne.DescendantNodes().OfType<PropertyDeclarationSyntax>().Single().Identifier.ToString());
     }
 
     private static IIncrementalGenerator[] Generators { get; } = [new EmbeddedTextsGenerator()];

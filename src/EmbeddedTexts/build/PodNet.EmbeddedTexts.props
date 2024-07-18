@@ -11,5 +11,7 @@
 		<CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="PodNet_EmbedTextIsConst" />
 		<CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="PodNet_EmbedTextIdentifier" />
 		<CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="PodNet_EmbedTextCommentContentLines" />
+		<CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="PodNet_EmbedTextIsStaticClass" />
+		<CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="PodNet_EmbedTextDirectoryAsClass" />
 	</ItemGroup>
 </Project>

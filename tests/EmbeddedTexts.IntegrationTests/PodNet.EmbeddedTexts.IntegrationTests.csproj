@@ -17,7 +17,7 @@
 		<Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
 
 		<AdditionalFiles Include="Files\**" />
-
+		
 		<AdditionalFiles Update="Files\Ignored\**" PodNet_EmbedText="false" />
 		<AdditionalFiles Update="Files\Ignored\Unignored.txt" PodNet_EmbedText="true" />
 		
@@ -30,6 +30,10 @@
 		<AdditionalFiles Update="Files\Const.txt" PodNet_EmbedTextIsConst="true" />
 
 		<AdditionalFiles Update="Files\10Lines.txt" PodNet_EmbedTextCommentContentLines="5" />
+		
+		<AdditionalFiles Update="Files\FolderAsClass\**" PodNet_EmbedTextDirectoryAsClass="true" />
+		
+		<AdditionalFiles Update="Files\Static.txt" PodNet_EmbedTextIsStaticClass="true" />
 	</ItemGroup>
 	
 </Project>

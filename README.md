@@ -68,9 +68,9 @@ Whether you have the generator automatically generating or not, you can explicit
 </Project>
 ```
 
-### Configuring the generated class name and namespace
+### Additional configuration
 
-You can set the `PodNet_EmbedTextNamespace`, `PodNet_EmbedTextClassName`, `PodNet_EmbeddedTextIsConst` and `PodNet_EmbeddedTextIdentifier` properties (attributes) on the items to override the default namespace, class and identifier name, as well as to generate a const instead of a property.
+You can set more properties to configure the generator further. See the examples below.
 
 ```csproj
 <Project>
@@ -92,7 +92,27 @@ You can set the `PodNet_EmbedTextNamespace`, `PodNet_EmbedTextClassName`, `PodNe
 </Project>
 ```
 
-The above results in: `OtherNamespace.MyFileTXT.Content` being the property that holds the file content.
+The above results in `OtherNamespace.MyFileTXT.Content` being the property that holds the file content, which will be a `const` value instead of a property, and will render up to the first 20 lines of the file contents into the IntelliSense documentation comment (the entirety of the file contents will be available in the constant value, however).
+
+```csproj
+<Project>
+  <!-- Additional properties, items and targets omitted -->
+  <ItemGroup>
+    <AdditionalFiles Include="Files/**" />
+    <!-- The defaults would be:
+         - IsStaticClass: set to true to generate a static partial class (defaults to false),
+         - PodNet_EmbedTextDirectoryAsClass: set to true to make the containing directory of the file the name of the class, and the name of the property the name of the file. You can still configure these explicitly by using the "ClassName" and "IdentifierName" as shown above. -->
+    <AdditionalFiles Update="Files/Folder/**" 
+                     PodNet_EmbedTextIsStaticClass="true"
+                     PodNet_EmbedTextDirectoryAsClass="true"
+                     />
+    <!-- Note the in the above, "Update" was used to configure a subfolder further, after these files were already matched by the "Include" in the previous statement. -->
+  </ItemGroup>
+</Project>
+```
+
+Above, we `include` all files in the `Files` folder (matched by the `"Files/"` globbing pattern), then refine all files in the `Files/Folder/**` path by applying two additional configuration values, which result in the generated classes being `static`, and the containing folder being the name of the generated class instead of the name of the file (as well as the property being the name of the file instead of being just `Content`).
+
 
 ### Advanced parameterization
 

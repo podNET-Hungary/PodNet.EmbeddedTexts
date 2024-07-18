@@ -68,4 +68,19 @@ public class EmbeddedTextsGeneratorIntegrationTest
 
         Assert.IsNotNull(Files.CustomPropertyName_txt.TestProperty);
     }
+
+    [TestMethod]
+    public void ClassCanBeStaticOrNot()
+    {
+        Assert.IsTrue(typeof(Files.Static_txt) is { IsAbstract: true, IsSealed: true });
+        Assert.IsTrue(typeof(Files.Text_txt) is { IsAbstract: false, IsSealed: false });
+    }
+
+    [TestMethod]
+    public void DirectoryAsClassWorksAsExpected()
+    {
+        Assert.IsTrue(typeof(Files.FolderAsClass).IsClass);
+        Assert.IsNotNull(Files.FolderAsClass.Property1_txt);
+        Assert.IsNotNull(Files.FolderAsClass.Property2_txt);
+    }
 }

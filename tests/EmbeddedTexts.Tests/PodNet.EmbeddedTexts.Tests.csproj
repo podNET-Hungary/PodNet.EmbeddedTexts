@@ -5,9 +5,12 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="PodNet.Analyzers.Core" Version="1.0.11" />
-		<PackageReference Include="PodNet.Analyzers.Testing" Version="1.0.7" />
-		<PackageReference Include="MSTest" Version="3.5.0" />
+		<PackageReference Include="PodNet.Analyzers.Core" Version="1.0.14">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="PodNet.Analyzers.Testing" Version="1.2.1" />
+		<PackageReference Include="MSTest" Version="3.5.1" />
 		
 		<Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
 

@@ -1,4 +1,6 @@
-﻿using PodNet.Analyzers.Testing.CSharp;
+﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using PodNet.Analyzers.Testing.CSharp;
 
 namespace PodNet.EmbeddedTexts.IntegrationTests;
 
@@ -30,12 +32,12 @@ public class EmbeddedTextsGeneratorIntegrationTest
         // Given that the Files\Ignored\** pattern is excluded by setting "PodNet_EmbedText" to "false", the following shouldn't compile:
         // Files.Ignored.Ignored_txt.Content;
         var undefined = "PodNet.EmbeddedTexts.IntegrationTests.Files.Ignored.Ignored_txt";
-        var compilation = PodCSharpCompilation.Create([$$"""
+        var compilation = PodCSharpCompilation.Create([CSharpSyntaxTree.ParseText($$"""
             class ShouldError
             {
                 string WontCompile() => {{undefined}}.Content;
             };
-            """]);
+            """)]);
         var diagnostics = compilation.GetDiagnostics();
         Assert.IsTrue(diagnostics.Any(d => d is
         {

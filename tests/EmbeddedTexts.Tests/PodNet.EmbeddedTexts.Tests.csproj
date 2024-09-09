@@ -1,20 +1,20 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net8.0</TargetFramework>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="PodNet.Analyzers.Core" Version="1.0.14">
-		  <PrivateAssets>all</PrivateAssets>
-		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
-		<PackageReference Include="PodNet.Analyzers.Testing" Version="1.2.1" />
-		<PackageReference Include="MSTest" Version="3.5.1" />
-		
-		<Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+		<PackageReference Include="PodNet.Analyzers.Core" Version="1.0.15" />
+		<PackageReference Include="PodNet.Analyzers.Testing" Version="1.5.3" />
+		<PackageReference Include="MSTest" Version="3.5.2" />
 
 		<ProjectReference Include="..\..\src\EmbeddedTexts\PodNet.EmbeddedTexts.csproj" />
+		
+		<Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+		
+		<None Remove="LargeData.json" />
+		<EmbeddedResource Include="LargeData.json" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
 
 </Project>

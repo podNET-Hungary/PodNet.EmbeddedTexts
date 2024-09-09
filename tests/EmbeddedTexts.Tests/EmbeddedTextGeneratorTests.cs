@@ -1,8 +1,12 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PodNet.Analyzers.Testing.CSharp;
+using PodNet.Analyzers.Testing.Diffing;
 using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Reflection;
 using Fakes = PodNet.Analyzers.Testing.CodeAnalysis.Fakes;
 
 namespace PodNet.EmbeddedTexts.Tests;
@@ -103,7 +107,8 @@ public class EmbeddedTextGeneratorTests
     [DataRow(10, 15, 10)]
     [DataRow(10, -15, 10)]
     [DataRow(1000, 50, 51)]
-    [DataRow(1000, null, 1000)]
+    [DataRow(1000, null, 21)]
+    [DataRow(1000, 10000, 1000)]
     public void GeneratesCustomCommentLines(int fileContentLines, int? limitLineNumber, int expectedLines)
     {
         if (limitLineNumber is < 0)
@@ -116,7 +121,7 @@ public class EmbeddedTextGeneratorTests
 
         var source = result.Results.Single().GeneratedSources.Single();
         var sourceLines = source.SyntaxTree.ToString().Split(["\r\n", "\r", "\n"], StringSplitOptions.TrimEntries);
-        var commentCodeLines = sourceLines.SkipWhile(s => s != "/// <code>").Skip(1).TakeWhile(s => s != "/// </code>").ToList();
+        var commentCodeLines = sourceLines.SkipWhile(s => s != "/// <code>").SkipWhile(s => s != "/// <![CDATA[").Skip(1).TakeWhile(s => s != "/// ]]>").ToList();
 
         if (fileContentLines > 0)
             Assert.IsTrue(commentCodeLines[0] == "/// Line [1]");
@@ -172,6 +177,29 @@ public class EmbeddedTextGeneratorTests
         Assert.AreEqual("ClassName", classOne.Identifier.ToString());
 
         Assert.AreEqual("Property1", classOne.DescendantNodes().OfType<PropertyDeclarationSyntax>().Single().Identifier.ToString());
+    }
+
+    [TestMethod]
+    public void LargeFileEmbeddingStaysPerfomant()
+    {
+        using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("PodNet.EmbeddedTexts.Tests.LargeData.json") ?? throw new InvalidOperationException("The large data file was not found or the stream couldn't be opened");
+        using var reader = new StreamReader(stream);
+        var largeData = reader.ReadToEnd();
+        var stopwatch = Stopwatch.StartNew();
+        var result = RunGeneration(new FakeText($@"{ProjectRoot}//LargeData.json", largeData));
+        stopwatch.Stop();
+        Assert.IsTrue(stopwatch.ElapsedMilliseconds < 800);
+        if (result.GeneratedTrees is [var tree])
+        {
+            var properties = tree.GetRoot().DescendantNodes().OfType<PropertyDeclarationSyntax>().ToList();
+            Assert.AreEqual(1, properties.Count);
+            var propertyBodyLiteral = properties.Single().ExpressionBody?.Expression as LiteralExpressionSyntax;
+            Assert.IsNotNull(propertyBodyLiteral);
+            var diff = TextDiff.InlineDiff(propertyBodyLiteral.Token.ValueText, largeData, false);
+            Assert.IsNull(diff, $"The expected property value body was different to the actual contents of the file.\r\n{diff}");
+        }
+        else
+            Assert.Fail($"Expected one tree to be generated, but got {result.GeneratedTrees.Length}");
     }
 
     private static IIncrementalGenerator[] Generators { get; } = [new EmbeddedTextsGenerator()];

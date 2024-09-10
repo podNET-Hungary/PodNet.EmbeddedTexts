@@ -8,6 +8,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".root", ".root", "{3ED2BD42
 		.gitignore = .gitignore
 		.github\workflows\cd-nuget.yml = .github\workflows\cd-nuget.yml
 		Directory.Build.props = Directory.Build.props
+		global.json = global.json
 		LICENSE = LICENSE
 		README.md = README.md
 	EndProjectSection

@@ -1,10 +1,8 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PodNet.Analyzers.Testing.CSharp;
 using PodNet.Analyzers.Testing.Diffing;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Reflection;
 using Fakes = PodNet.Analyzers.Testing.CodeAnalysis.Fakes;

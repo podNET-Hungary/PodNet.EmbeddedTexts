@@ -2,16 +2,14 @@
 
 	<PropertyGroup>
 		<TargetFramework>netstandard2.0</TargetFramework>
-		<PackageId>PodNet.EmbeddedTexts</PackageId>
 		<Description>A simple C# code generator that allows for embedding text file content into your code.</Description>
 		<PackageTags>EmbeddedTexts, PodNet, generator, embedded, texts, resx, resource, awesome</PackageTags>
 	</PropertyGroup>
-
 	<ItemGroup>
-		<PackageReference Include="PodNet.Analyzers.Core" Version="1.0.15" PrivateAssets="all" />
-		<PackageReference Include="PodNet.NuGet.Core" Version="1.1.0" PrivateAssets="all" />
-
+		<PackageReference Include="PodNet.Analyzers.Core" Version="1.0.17" PrivateAssets="all" />
+		<PackageReference Include="PodNet.NuGet.Core" Version="1.2.2" PrivateAssets="all" />
+		
 		<Content Include="build/*" PackagePath="build" />
 	</ItemGroup>
-	
+
 </Project>

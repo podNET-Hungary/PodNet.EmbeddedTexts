@@ -7,6 +7,8 @@ namespace PodNet.EmbeddedTexts;
 [Generator(LanguageNames.CSharp)]
 public sealed class EmbeddedTextsGenerator : IIncrementalGenerator
 {
+    public static readonly DiagnosticDescriptor InvalidRelativePathDescriptor = new("PN1701", "Relative paths are non-deterministic", "The linked file at '{0}' is outside the project root, so generating a namespace for it can be non-deterministic and can include PII. Supply the namespace for the item or select items using the '{1}' property on the item(s), or use '{2}' to use the containing directory. If embedding was not indended, you can also disable it by setting '{3}' to false on the item, or '{4}' globally.", "Compile", DiagnosticSeverity.Error, true);
+
     public const string EmbedAdditionalTextsConfigProperty = "PodNetAutoEmbedAdditionalTexts";
     public const string EmbedTextMetadataProperty = "PodNet_EmbedText";
     public const string EmbedTextNamespaceMetadataProperty = "PodNet_EmbedTextNamespace";
@@ -72,6 +74,12 @@ public sealed class EmbeddedTextsGenerator : IIncrementalGenerator
             string fullDirectory = Path.GetDirectoryName(item.Text.Path);
             var relativeFolderPath = PathProcessing.GetRelativePath(item.ProjectDirectory, fullDirectory);
             var relativeFilePath = PathProcessing.GetRelativePath(item.ProjectDirectory, item.Text.Path);
+
+            if (relativeFilePath.StartsWith("..") && item.ItemNamespace is null or [] && !item.DirectoryAsClass)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(InvalidRelativePathDescriptor, null, item.Text.Path, EmbedTextNamespaceMetadataProperty, EmbedTextDirectoryAsClassMetadataProperty, EmbedTextMetadataProperty, EmbedAdditionalTextsConfigProperty));
+                return;
+            }
 
             var directoryParts = fullDirectory.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             if (directoryParts.Length == 0)

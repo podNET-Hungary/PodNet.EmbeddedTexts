@@ -85,4 +85,10 @@ public class EmbeddedTextsGeneratorIntegrationTest
         Assert.IsNotNull(Files.FolderAsClass.Property1_txt);
         Assert.IsNotNull(Files.FolderAsClass.Property2_txt);
     }
+
+    [TestMethod]
+    public void LargeFileWorks()
+    {
+        Assert.IsTrue(TestNamespace.LargeData_json.Content.Length > 4_000_000); // Shouldn't check for exact size here, it depends on encoding and target platform.
+    }
 }

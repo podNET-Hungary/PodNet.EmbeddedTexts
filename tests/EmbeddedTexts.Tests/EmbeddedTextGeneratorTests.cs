@@ -200,6 +200,27 @@ public class EmbeddedTextGeneratorTests
             Assert.Fail($"Expected one tree to be generated, but got {result.GeneratedTrees.Length}");
     }
 
+    [TestMethod]
+    public void RelativeFilesOutsideProjectDirThrowWhenNamespaceIsNotDefined()
+    {
+        var result = RunGeneration(new FakeText($@"//home//Users//source//OtherProject//TestData.json", "Test content"));
+        Assert.AreEqual(0, result.GeneratedTrees.Length);
+        Assert.AreEqual(1, result.Diagnostics.Length);
+        Assert.IsTrue(result.Diagnostics.Single().Descriptor == EmbeddedTextsGenerator.InvalidRelativePathDescriptor);
+    }
+
+    [TestMethod]
+    public void RelativeFilesOutsideProjectDirWorkWhenNamespaceIsDefined()
+    {
+        var result = RunGeneration(new FakeText($@"//home//Users//source//OtherProject//TestData.json", "Test content", ($"build_metadata.additionalfiles.{EmbeddedTextsGenerator.EmbedTextNamespaceMetadataProperty}", "TestNamespace")));
+        Assert.AreEqual(1, result.GeneratedTrees.Length);
+        Assert.AreEqual(0, result.Diagnostics.Length);
+
+        var result2 = RunGeneration(new FakeText($@"//home//Users//source//OtherProject//TestData.json", "Test content", ($"build_metadata.additionalfiles.{EmbeddedTextsGenerator.EmbedTextDirectoryAsClassMetadataProperty}", "true")));
+        Assert.AreEqual(1, result2.GeneratedTrees.Length);
+        Assert.AreEqual(0, result2.Diagnostics.Length);
+    }
+
     private static IIncrementalGenerator[] Generators { get; } = [new EmbeddedTextsGenerator()];
     private static CSharpCompilation Compilation { get; } = PodCSharpCompilation.Create([]);
 

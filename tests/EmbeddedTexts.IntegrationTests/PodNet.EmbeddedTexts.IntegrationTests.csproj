@@ -17,7 +17,8 @@
 		<Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
 
 		<AdditionalFiles Include="Files\**" />
-		
+
+
 		<AdditionalFiles Update="Files\Ignored\**" PodNet_EmbedText="false" />
 		<AdditionalFiles Update="Files\Ignored\Unignored.txt" PodNet_EmbedText="true" />
 		
@@ -34,6 +35,8 @@
 		<AdditionalFiles Update="Files\FolderAsClass\**" PodNet_EmbedTextDirectoryAsClass="true" />
 		
 		<AdditionalFiles Update="Files\Static.txt" PodNet_EmbedTextIsStaticClass="true" />
+
+		<AdditionalFiles Include="..\EmbeddedTexts.Tests\LargeData.json" Link="Files\LargeData.json" PodNet_EmbedTextNamespace="TestNamespace" />
 	</ItemGroup>
 	
 </Project>
